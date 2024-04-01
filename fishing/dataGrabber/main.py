@@ -2,24 +2,18 @@ import cv2
 import numpy as np
 import pandas as pd
 import pyautogui
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import threading
 import time
 from .models import *
 import pygetwindow as gw
-
-
-upperBound_s1 = np.array([200, 150, 255])
-lowerBound_s1 = np.array([100, 0, 85])
+from mss import mss
 
 upperBound_fish = np.array([50, 255, 197])
 lowerBound_fish = np.array([20, 215, 147])
 
-upperBound_chest = np.array([58, 86, 215])
-lowerBound_chest = np.array([8, 36, 165])
-
-# Makes the x coordinate of the center of the fish and of the rectangle to be in the right place
-x_center_calibration_value = 10
+fish_x_calibration = -20
+fish_y_calibration = -20
 
 class DataGrabber():
 
@@ -27,22 +21,35 @@ class DataGrabber():
     # outside border color: #e8ae4e
     # fishing background color: #7ba2e8
 
+    def __init__(self):
+        self.border_color = (232, 174, 78)
+        self.meter_color = (130, 229, 0)
+        self.bbox_size = 600
+        self.recent_fish_y = 0
+        self.recent_fish_x = 0
+        
+        self.current_image = None
+        
     
-    def fishFound(self, match_location):
+        self.template_functions = {
+            "fish": {"template_path": "../assets/images/FishingGui/Fish/fish.png", "function": self.fish_found, "template" : None},
+        }
+    
+    def fish_found(self, match_location):
         print("Fish found")
         self.recent_fish_x = match_location[0]
         self.recent_fish_y = match_location[1]
         self.find_fishing_meter(match_location)
-        pass
 
     def exclamationPointFound(self, match_location):
         print("Exclamation point found - " + str(match_location))
-        pass
 
     def get_window_position_and_size(self, window_title):
+        return(0,0,1200,1200)
+
         windows = gw.getWindowsWithTitle(window_title)
         if windows:
-            window = windows[0]  # Assuming there's only one window with the given title
+            window = windows[0]
             left, top, right, bottom = window.left, window.top, window.right, window.bottom
             return (left, top, right, bottom)
         else:
@@ -90,7 +97,7 @@ class DataGrabber():
         """
 
         try:
-            window_title = "Stardew Valley"
+            window_title = "Preview"
             window_position_and_size = self.get_window_position_and_size(window_title)
             if window_position_and_size is not None:
                 left, top, right, bottom = window_position_and_size
@@ -105,81 +112,61 @@ class DataGrabber():
 
 
                 screen = np.array(pyautogui.screenshot(region=(int(x), capture_y, 40, bottom-100)))
-                
                 screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
-                
-                # Black out fish
-                for i in range (0, 38):
-                    for j in range(y-25, y+25):
-                        screen[j, i] = [0, 0, 0] 
 
-                # Iterate over each pixel and modify it
-                for i in range(screen.shape[0]):
-                    for j in range(screen.shape[1]):
-                        # This is the range to identify the bar correctly
-                        if ((screen[i, j, 1] > 145 and screen[i, j, 0] < 145) or screen[i, j, 1] >= 140) and screen[i,j,0] < 200 or screen[i,j,0] <= 6:
-                            screen[i, j] = [0, 0, 0]  # Set pixel to black
+                # Black out fish
+                screen[y-25:y+25, 0:38] = [0, 0, 0]
+
+                # Apply condition using NumPy indexing
+                condition = ((screen[:,:,1] > 145) & (screen[:,:,0] < 145)) | (screen[:,:,1] >= 140) & ((screen[:,:,0] < 200) | (screen[:,:,0] <= 6))
+                screen[condition] = [0, 0, 0]
+
+                cv2.imshow("image",screen)
+                cv2.waitKey(2)
+
 
                 top_y, bottom_y = self.find_black_column_positions(20,screen)
+
         except Exception as e:
             print("ERROR:", e)
             pass
-    def __init__(self):
-        self.border_color = (232, 174, 78)
-        self.meter_color = (130, 229, 0)
-        self.bbox_size = 600
-        self.recent_fish_y = 0
-        self.recent_fish_x = 0
-        self.template_functions = {
-            "fish": {"template_path": "../assets/images/FishingGui/Fish/fish.png", "function": self.fishFound, "template" : None},
-        }
+
+    def capture_screenshot(self, bbox):
+        # Capture entire screen
+        with mss() as sct:
+            monitor = sct.monitors[1]
+            sct_img = sct.grab(bbox)
+            return Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
 
     def process_screen(self, current_size):
         """
-            Process screen and search for anything in the template_functions, and identifies the global x,y
+        Process screen and search for anything in the template_functions, and identifies the global x,y
         """
-        # Define the size of the bounding box
-        if self.recent_fish_x == 0:
-            # Capture the entire screen
-            screen = np.array(ImageGrab.grab(bbox=(0, 0, current_size[0], current_size[1])))
-        else:
-            # Limit the bounding box around the recent fish coordinates
-            bbox_x2 = min(current_size[0], self.recent_fish_x + self.bbox_size // 2)
-            bbox_y2 = min(current_size[1], self.recent_fish_y + self.bbox_size // 2)
+        start_time = time.time()
 
-            # Capture the screen within the limited bounding box
-            screen = np.array(ImageGrab.grab(bbox=(0, 0, bbox_x2, bbox_y2)))
+        # Capture the screen
+        bbox = (0, 0, 1000, 1000)
+        self.current_image = np.array(self.capture_screenshot(bbox))
 
-        for template_name, data in self.template_functions.items():
+        img_HSV = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2HSV)
+        img_fish = cv2.inRange(img_HSV, lowerBound_fish, upperBound_fish)
+        fish_detected = False
+        conts, hierarchy = cv2.findContours(img_fish, cv2.RETR_EXTERNAL , cv2.CHAIN_APPROX_SIMPLE)
+
+        for cnt in conts:
+
+            area = cv2.contourArea(cnt)
+
+            if area > 25:
+
+                (x, y), radius = cv2.minEnclosingCircle(cnt)
+                fish_center_point = (int(x + fish_x_calibration), int(y + fish_y_calibration))
+                fish_center_height = fish_center_point[1]
+                radius = int(radius)
+                fish_detected = True   
+                break
             
-            if data["template"] is None:
-                template_path = data["template_path"]
-                function = data["function"]
+        if fish_detected:
+            self.fish_found(fish_center_point)
 
-                # Read the template image
-                template = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
-                data["template"] = template
-            else:
-                template = data["template"]
-            hh, ww = template.shape[:2]
-
-            # Extract base image and alpha channel and make alpha 3 channels
-            base = template[:, :, 0:3]
-            alpha = template[:, :, 3]
-            alpha = cv2.merge([alpha, alpha, alpha])
-
-            # Set threshold for template matching
-            threshold = 0.95
-
-            # Convert color space from BGR to RGB
-            screen_rgb = cv2.cvtColor(screen, cv2.COLOR_BGR2RGB)
-
-            # Do masked template matching and save correlation image
-            correlation = cv2.matchTemplate(screen_rgb, base, cv2.TM_CCORR_NORMED, mask=alpha)
-
-            # Get locations where matches exceed the threshold
-            loc = np.where(correlation >= threshold)
-
-            # Call function for each match
-            for pt in zip(*loc[::-1]):
-                function(pt)
+        print("--- %s seconds ---" % (time.time() - start_time))
