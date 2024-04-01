@@ -11,7 +11,6 @@ from mss import mss
 
 upperBound_fish = np.array([50, 255, 197])
 lowerBound_fish = np.array([20, 215, 147])
-
 fish_x_calibration = -20
 fish_y_calibration = -20
 
