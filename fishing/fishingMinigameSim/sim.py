@@ -49,7 +49,7 @@ class FishingMinigame:
         # bobber bar
         self.bobberBarPos = GAME_HEIGHT
         self.bobberBarSpeed = 0
-        self.bobberBarHeight = 100
+        self.bobberBarHeight = 200
         
 
         pass
@@ -195,12 +195,12 @@ while running:
 
     # Draw the bar
     pygame.draw.rect(screen, barMiddle, (64, fishing_minigame.bobberBarPos, 36, fishing_minigame.bobberBarHeight))
+    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 8, 36, 4))
+    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos , 36, 4))
     pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
     pygame.draw.rect(screen, barSide, (64+36-4, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
     pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 4, 36, 4))
     pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos - 4, 36, 4))
-    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 8, 36, 4))
-    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos - 8, 36, 4))
 
 
     fish_path = "./assets/fish.png"
