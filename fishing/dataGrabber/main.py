@@ -97,7 +97,7 @@ class DataGrabber():
         """
 
         try:
-            window_title = "Preview"
+            window_title = "Stardew Valley"
             window_position_and_size = self.get_window_position_and_size(window_title)
             if window_position_and_size is not None:
                 left, top, right, bottom = window_position_and_size
