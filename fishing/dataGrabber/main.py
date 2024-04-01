@@ -49,6 +49,9 @@ class DataGrabber():
             return None
         
     def find_black_column_positions(self, x, image):
+        """
+            Find the largest black column from the processed image in find_fishing_meter
+        """
         # Convert the image to grayscale
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -62,41 +65,39 @@ class DataGrabber():
         for y in range(gray_image.shape[0]):
             pixel_value = gray_image[y, x]
 
-            if pixel_value == 0:  # Black pixel
+            # Search for pixel height
+            if pixel_value == 0:
                 current_span_length += 1
-            else:  # White pixel
-                if current_span_length >= 5:
-                    # Update longest span if needed
-                    if current_span_length > longest_span_length:
-                        longest_span_length = current_span_length
-                        top_y_position = y - current_span_length
-                        bottom_y_position = y - 1
+            elif current_span_length >= 5 and current_span_length > longest_span_length:
+                longest_span_length = current_span_length
+                top_y_position = y - current_span_length
+                bottom_y_position = y - 1
 
                 # Reset current span length
                 current_span_length = 0
 
         # Check if the last span is the longest
-        if current_span_length >= 9:
-            if current_span_length > longest_span_length:
-                top_y_position = gray_image.shape[0] - current_span_length
-                bottom_y_position = gray_image.shape[0] - 1
+        if current_span_length >= 9 and current_span_length > longest_span_length:
+            top_y_position = gray_image.shape[0] - current_span_length
+            bottom_y_position = gray_image.shape[0] - 1
 
         return top_y_position, bottom_y_position
 
 
     def find_fishing_meter(self, fish_location):
-
+        """
+            Takes in the x and y of the fish_location, and then uses that information to identify the green
+        """
 
         try:
-
             window_title = "Stardew Valley"
             window_position_and_size = self.get_window_position_and_size(window_title)
             if window_position_and_size is not None:
                 left, top, right, bottom = window_position_and_size
 
-                bottom_y = float('-inf')  # Initialize to negative infinity
-                top_y = float('inf')   # Initialize to positive infinity
-                # Capture the screen using OpenCV
+                bottom_y = float('-inf')
+                top_y = float('inf')
+
                 capture_y = top
 
                 x = fish_location[0]
@@ -115,26 +116,11 @@ class DataGrabber():
                 # Iterate over each pixel and modify it
                 for i in range(screen.shape[0]):
                     for j in range(screen.shape[1]):
-                        # Check if pixel is green and blue
+                        # This is the range to identify the bar correctly
                         if ((screen[i, j, 1] > 145 and screen[i, j, 0] < 145) or screen[i, j, 1] >= 140) and screen[i,j,0] < 200 or screen[i,j,0] <= 6:
                             screen[i, j] = [0, 0, 0]  # Set pixel to black
 
                 top_y, bottom_y = self.find_black_column_positions(20,screen)
-
-                # Meant to be ran in a thread
-                def click_and_release():
-                    pyautogui.mouseDown()
-                    time.sleep(0.35)
-                    pyautogui.mouseUp()
-
-
-                if(bottom_y-(bottom_y-top_y)/2 > y):
-                    click_and_release()
-                else:
-                    pyautogui.mouseUp()
-
-                print("Bottom:", bottom_y)
-                print("Top:", top_y)
         except Exception as e:
             print("ERROR:", e)
             pass
@@ -144,13 +130,14 @@ class DataGrabber():
         self.bbox_size = 600
         self.recent_fish_y = 0
         self.recent_fish_x = 0
-        # Define a dictionary with template images and corresponding functions
         self.template_functions = {
-            "fish": {"template_path": "../assets/images/FishingGui/Fish/fish.png", "function": self.fishFound},
+            "fish": {"template_path": "../assets/images/FishingGui/Fish/fish.png", "function": self.fishFound, "template" : None},
         }
 
-    # Function to process screen capture
     def process_screen(self, current_size):
+        """
+            Process screen and search for anything in the template_functions, and identifies the global x,y
+        """
         # Define the size of the bounding box
         if self.recent_fish_x == 0:
             # Capture the entire screen
@@ -164,11 +151,16 @@ class DataGrabber():
             screen = np.array(ImageGrab.grab(bbox=(0, 0, bbox_x2, bbox_y2)))
 
         for template_name, data in self.template_functions.items():
-            template_path = data["template_path"]
-            function = data["function"]
+            
+            if data["template"] is None:
+                template_path = data["template_path"]
+                function = data["function"]
 
-            # Read the template image
-            template = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+                # Read the template image
+                template = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+                data["template"] = template
+            else:
+                template = data["template"]
             hh, ww = template.shape[:2]
 
             # Extract base image and alpha channel and make alpha 3 channels
