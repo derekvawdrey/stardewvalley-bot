@@ -156,7 +156,11 @@ class FishingMinigame:
 # Initialize Pygame
 pygame.init()
 clock = pygame.time.Clock()
-green = (0,255,0)
+
+barMiddle = (130,229,0)
+barTop = (73,193,0)
+barSide = (33,101,1)
+
 # Set up the display
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Fishing Mini-game")
@@ -189,7 +193,14 @@ while running:
 
     screen.blit(background_image, (0, 0))
 
-    pygame.draw.rect(screen, green, (64, fishing_minigame.bobberBarPos, 36, fishing_minigame.bobberBarHeight))
+    # Draw the bar
+    pygame.draw.rect(screen, barMiddle, (64, fishing_minigame.bobberBarPos, 36, fishing_minigame.bobberBarHeight))
+    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
+    pygame.draw.rect(screen, barSide, (64+36-4, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
+    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 4, 36, 4))
+    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos - 4, 36, 4))
+    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 8, 36, 4))
+    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos - 8, 36, 4))
 
 
     fish_path = "./assets/fish.png"
