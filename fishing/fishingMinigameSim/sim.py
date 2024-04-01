@@ -1,11 +1,22 @@
 import pygame
 import random
 import math
+from enum import Enum
+
 
 # Define constants for the window dimensions
 WINDOW_WIDTH = 148
 WINDOW_HEIGHT = 592
 GAME_HEIGHT = 548
+
+class MotionType(Enum):
+    MIXED = 0
+    DART = 1
+    SMOOTH = 2
+    FLOATER = 4
+    SINKER = 3
+
+
 
 class GameTime:
     def __init__(self):
@@ -19,14 +30,14 @@ class FishingMinigame:
         #Processing
 
         self.mouse_down = False
-        self.difficulty = 4000 # DONT KNOW WHERE VALUE COMES FROM
-        self.distanceFromCatching = 0
+        self.difficulty = 16000 # DONT KNOW WHERE VALUE COMES FROM
+        self.distanceFromCatching = 0.3
         self.space_below = 0 # DONT KNOW WHERE VALUE COMES FROM
         self.space_above = 0 # DONT KNOW WHERE VALUE COMES FROM
 
         # Ranges from -1.5 to 1.5
         self.floaterSinkerAcceleration = 0.00
-        self.motionType = 0
+        self.motionType = self.random_motion_type()
 
         # bobbers
         self.bobberTargetPosition = 0
@@ -36,12 +47,16 @@ class FishingMinigame:
         self.bobberInBar = True
 
         # bobber bar
-        self.bobberBarPos = 0
+        self.bobberBarPos = GAME_HEIGHT
         self.bobberBarSpeed = 0
-        self.bobberBarHeight = 0
+        self.bobberBarHeight = 100
         
 
         pass
+    
+    def random_motion_type(self):
+        return random.choice(list(MotionType))
+    
     
     
     def update_floater(self):
@@ -141,7 +156,7 @@ class FishingMinigame:
 # Initialize Pygame
 pygame.init()
 clock = pygame.time.Clock()
-
+green = (0,255,0)
 # Set up the display
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Fishing Mini-game")
@@ -174,11 +189,13 @@ while running:
 
     screen.blit(background_image, (0, 0))
 
+    pygame.draw.rect(screen, green, (64, fishing_minigame.bobberBarPos, 36, fishing_minigame.bobberBarHeight))
+
+
     fish_path = "./assets/fish.png"
     fish_image = pygame.image.load(fish_path)
 
     screen.blit(fish_image, (64, fishing_minigame.bobberPosition))
-
 
     # Update the display
     pygame.display.flip()
