@@ -2,7 +2,7 @@ import pygame
 import random
 import math
 from enum import Enum
-
+import os
 
 # Define constants for the window dimensions
 WINDOW_WIDTH = 148
@@ -26,15 +26,18 @@ class GameTime:
         self.elapsed_time += milliseconds
 
 class FishingMinigame:
-    def __init__(self):
+
+    def reset(self):
         #Processing
 
         self.mouse_down = False
-        self.difficulty = 16000 # DONT KNOW WHERE VALUE COMES FROM
+        self.difficulty = random.randint(5, 115) # DONT KNOW WHERE VALUE COMES FROM
         self.distanceFromCatching = 0.3
         self.space_below = 0 # DONT KNOW WHERE VALUE COMES FROM
         self.space_above = 0 # DONT KNOW WHERE VALUE COMES FROM
-
+        self.is_game_over = False
+        self.is_won = False
+        self.is_perfection = True
         # Ranges from -1.5 to 1.5
         self.floaterSinkerAcceleration = 0.00
         self.motionType = self.random_motion_type()
@@ -44,13 +47,19 @@ class FishingMinigame:
         self.bobberPosition = GAME_HEIGHT
         self.bobberSpeed = 0
         self.bobberAcceleration = 0
-        self.bobberInBar = True
+        self.bobberInBar = False
 
         # bobber bar
         self.bobberBarPos = GAME_HEIGHT
         self.bobberBarSpeed = 0
-        self.bobberBarHeight = 200
+        self.bobberBarHeight = 100
+
+    def __init__(self):
+        #Processing
+        self.reset()
         
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.running = False
 
         pass
     
@@ -127,15 +136,17 @@ class FishingMinigame:
     def update_catching_distance(self):
         if(self.bobberInBar):
             self.distanceFromCatching += 0.002
+        else:
+            self.distanceFromCatching -= 0.002
+            self.is_perfection = False
             # Add fish shaking
-        
         self.distanceFromCatching = max(0.0, min(1.0, self.distanceFromCatching))
-        if(self.distanceFromCatching <= 0):
-            # Die
+        if(self.distanceFromCatching <= 0.05):
+            self.is_game_over = True
             pass
         
         if(self.distanceFromCatching >= 1):
-            # You get fish
+            self.is_won = True
             pass
 
 
@@ -152,64 +163,60 @@ class FishingMinigame:
         pass
 
 
+    
+    def startSimulationProgram(self):
+        # Initialize Pygame
+        pygame.init()
+        self.clock = pygame.time.Clock()
 
-# Initialize Pygame
-pygame.init()
-clock = pygame.time.Clock()
+        self.barMiddle = (130,229,0)
+        self.barTop = (73,193,0)
+        self.barSide = (33,101,1)
 
-barMiddle = (130,229,0)
-barTop = (73,193,0)
-barSide = (33,101,1)
+        # Set up the display
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        pygame.display.set_caption("Fishing Mini-game")
 
-# Set up the display
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption("Fishing Mini-game")
+        # Create instances of GameTime and FishingMinigame
+        self.game_time = GameTime()
+        self.running = True
 
-# Create instances of GameTime and FishingMinigame
-game_time = GameTime()
-fishing_minigame = FishingMinigame()
+    def run(self):
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
 
-# Main game loop
-running = True
-while running:
-    # Handle events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+        # Update game time
+        milliseconds = self.clock.tick(60)  # Limit frame rate to 60 FPS
+        self.game_time.tick(milliseconds)
 
-    # Update game time
-    milliseconds = clock.tick(60)  # Limit frame rate to 60 FPS
-    game_time.tick(milliseconds)
+        self.mouse_down = pygame.mouse.get_pressed()[0]
+        self.update(self.game_time)
 
-    fishing_minigame.mouse_down = pygame.mouse.get_pressed()[0]
-    fishing_minigame.update(game_time)
+        # Clear the screen
+        self.screen.fill((255, 255, 255))  # Fill with white color
 
-    # Clear the screen
-    screen.fill((255, 255, 255))  # Fill with white color
+        # Load image
+        image_path = os.path.join(self.current_dir, "assets", "fishingMinigameUI.png")
+        background_image = pygame.image.load(image_path)
 
-    # Load image
-    image_path = "./assets/fishingMinigameUI.png"
-    background_image = pygame.image.load(image_path)
+        self.screen.blit(background_image, (0, 0))
 
-    screen.blit(background_image, (0, 0))
-
-    # Draw the bar
-    pygame.draw.rect(screen, barMiddle, (64, fishing_minigame.bobberBarPos, 36, fishing_minigame.bobberBarHeight))
-    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 8, 36, 4))
-    pygame.draw.rect(screen, barTop, (64, fishing_minigame.bobberBarPos , 36, 4))
-    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
-    pygame.draw.rect(screen, barSide, (64+36-4, fishing_minigame.bobberBarPos, 4, fishing_minigame.bobberBarHeight))
-    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos + fishing_minigame.bobberBarHeight - 4, 36, 4))
-    pygame.draw.rect(screen, barSide, (64, fishing_minigame.bobberBarPos - 4, 36, 4))
+        # Draw the bar
+        pygame.draw.rect(self.screen, self.barMiddle, (64, self.bobberBarPos, 36, self.bobberBarHeight))
+        pygame.draw.rect(self.screen, self.barTop, (64, self.bobberBarPos + self.bobberBarHeight - 8, 36, 4))
+        pygame.draw.rect(self.screen, self.barTop, (64, self.bobberBarPos , 36, 4))
+        pygame.draw.rect(self.screen, self.barSide, (64, self.bobberBarPos, 4, self.bobberBarHeight))
+        pygame.draw.rect(self.screen, self.barSide, (64+36-4, self.bobberBarPos, 4, self.bobberBarHeight))
+        pygame.draw.rect(self.screen, self.barSide, (64, self.bobberBarPos + self.bobberBarHeight - 4, 36, 4))
+        pygame.draw.rect(self.screen, self.barSide, (64, self.bobberBarPos - 4, 36, 4))
 
 
-    fish_path = "./assets/fish.png"
-    fish_image = pygame.image.load(fish_path)
+        fish_path = os.path.join(self.current_dir, "assets", "fish.png")
+        fish_image = pygame.image.load(fish_path)
 
-    screen.blit(fish_image, (64, fishing_minigame.bobberPosition))
+        self.screen.blit(fish_image, (64, self.bobberPosition))
 
-    # Update the display
-    pygame.display.flip()
-
-# Quit Pygame
-pygame.quit()
+        # Update the display
+        pygame.display.flip()

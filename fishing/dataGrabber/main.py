@@ -26,6 +26,8 @@ class DataGrabber():
         self.bbox_size = 600
         self.recent_fish_y = 0
         self.recent_fish_x = 0
+        self.bobber_top_y = 0
+        self.bobber_bottom_y = 0
         
         self.current_image = None
         
@@ -35,7 +37,7 @@ class DataGrabber():
         }
     
     def fish_found(self, match_location):
-        print("Fish found")
+        # print("Fish found")
         self.recent_fish_x = match_location[0]
         self.recent_fish_y = match_location[1]
         self.find_fishing_meter(match_location)
@@ -56,7 +58,7 @@ class DataGrabber():
         
     def find_black_column_positions(self, x, image):
         """
-            Find the largest black column from the processed image in find_fishing_meter
+        Find the largest black column from the processed image in find_fishing_meter
         """
         # Convert the image to grayscale
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -74,20 +76,24 @@ class DataGrabber():
             # Search for pixel height
             if pixel_value == 0:
                 current_span_length += 1
-            elif current_span_length >= 5 and current_span_length > longest_span_length:
-                longest_span_length = current_span_length
-                top_y_position = y - current_span_length
-                bottom_y_position = y - 1
+            else:
+                if current_span_length >= 5 and current_span_length > longest_span_length:
+                    longest_span_length = current_span_length
+                    top_y_position = y - current_span_length
+                    bottom_y_position = y - 1
 
                 # Reset current span length
                 current_span_length = 0
 
         # Check if the last span is the longest
-        if current_span_length >= 9 and current_span_length > longest_span_length:
+        if current_span_length >= 50 and current_span_length > longest_span_length:
+            longest_span_length = current_span_length
             top_y_position = gray_image.shape[0] - current_span_length
             bottom_y_position = gray_image.shape[0] - 1
 
         return top_y_position, bottom_y_position
+
+
 
 
     def find_fishing_meter(self, fish_location):
@@ -124,7 +130,7 @@ class DataGrabber():
                 cv2.waitKey(2)
 
 
-                top_y, bottom_y = self.find_black_column_positions(20,screen)
+                self.bobber_top_y, self.bobber_bottom_y = self.find_black_column_positions(20,screen)
 
         except Exception as e:
             print("ERROR:", e)
@@ -168,4 +174,4 @@ class DataGrabber():
         if fish_detected:
             self.fish_found(fish_center_point)
 
-        print("--- %s seconds ---" % (time.time() - start_time))
+        # print("--- %s seconds ---" % (time.time() - start_time))
