@@ -31,10 +31,22 @@ def start_simulation():
         # train_model step
 
 
-def get_reward():
+def get_reward(action):
     reward = 0
-    if fishing_game.bobberInBar:
+
+    fish_y = data_grabber.recent_fish_y
+    bobber_top = data_grabber.bobber_top_y
+    bobber_bottom = data_grabber.bobber_bottom_y
+    bobber_center = (bobber_bottom + bobber_top) // 2 
+
+    if bobber_bottom + bobber_center > fish_y and action[0] == 1:
+        reward = -1
+    elif bobber_bottom + bobber_center > fish_y and action[1] == 1:
         reward = 1
+    elif bobber_bottom + bobber_center < fish_y and action[0] == 1:
+        reward = 1
+    elif bobber_bottom + bobber_center < fish_y and action[1] == 1:
+        reward = -1
     return reward
 
 # Train the neural network
