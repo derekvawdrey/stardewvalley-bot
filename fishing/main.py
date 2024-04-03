@@ -39,13 +39,13 @@ def get_reward(action):
     bobber_bottom = data_grabber.bobber_bottom_y
     bobber_center = (bobber_bottom + bobber_top) // 2 
 
-    if bobber_bottom + bobber_center > fish_y and action[0] == 1:
+    if bobber_bottom - bobber_center < fish_y and action[0] == 1:
         reward = -1
-    elif bobber_bottom + bobber_center > fish_y and action[1] == 1:
+    elif bobber_bottom - bobber_center < fish_y and action[1] == 1:
         reward = 1
-    elif bobber_bottom + bobber_center < fish_y and action[0] == 1:
+    elif bobber_bottom - bobber_center > fish_y and action[0] == 1:
         reward = 1
-    elif bobber_bottom + bobber_center < fish_y and action[1] == 1:
+    elif bobber_bottom - bobber_center > fish_y and action[1] == 1:
         reward = -1
     return reward
 
