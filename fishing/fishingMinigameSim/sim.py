@@ -29,7 +29,6 @@ class FishingMinigame:
 
     def reset(self):
         #Processing
-
         self.mouse_down = False
         self.difficulty = random.randint(5, 115) # DONT KNOW WHERE VALUE COMES FROM
         self.distanceFromCatching = 0.3
@@ -48,13 +47,21 @@ class FishingMinigame:
         self.bobberSpeed = 0
         self.bobberAcceleration = 0
         self.bobberInBar = False
+        self.bobberInBarTime = 0.00
 
         # bobber bar
         self.bobberBarPos = GAME_HEIGHT
         self.bobberBarSpeed = 0
         self.bobberBarHeight = 100
 
+    def is_ended(self):
+        if self.is_won:
+            return self.is_won
+        return self.is_game_over
+
     def __init__(self):
+        self.wait = False
+        self.training = False
         #Processing
         self.reset()
         
@@ -136,8 +143,10 @@ class FishingMinigame:
     def update_catching_distance(self):
         if(self.bobberInBar):
             self.distanceFromCatching += 0.002
+            self.bobberInBarTime += 1
         else:
             self.distanceFromCatching -= 0.002
+            self.bobberInBarTime = 0
             self.is_perfection = False
             # Add fish shaking
         self.distanceFromCatching = max(0.0, min(1.0, self.distanceFromCatching))
@@ -187,12 +196,15 @@ class FishingMinigame:
             if event.type == pygame.QUIT:
                 self.running = False
 
+
         # Update game time
         milliseconds = self.clock.tick(60)  # Limit frame rate to 60 FPS
         self.game_time.tick(milliseconds)
+        if not self.training:
+            self.mouse_down = pygame.mouse.get_pressed()[0]
 
-        self.mouse_down = pygame.mouse.get_pressed()[0]
-        self.update(self.game_time)
+        if not self.wait:
+            self.update(self.game_time)
 
         # Clear the screen
         self.screen.fill((255, 255, 255))  # Fill with white color
