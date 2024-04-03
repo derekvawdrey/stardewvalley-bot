@@ -17,8 +17,7 @@ record = 0
 score = 0
 
 def get_reward(action, bobber_center, bobber_in_bar, fish_y):
-    print("Bobber Center", bobber_center, "Bobber in bar", bobber_in_bar, "fish y",fish_y)
-
+    
     if bobber_in_bar:
         return REWARD_IN_BOBBER
     elif bobber_center < fish_y and action[ACTION_MOUSE_DOWN] == 1:
@@ -46,7 +45,6 @@ def train_model(fishing_game, agent, data_grabber):
         fishing_game.mouse_down = False
 
     reward += get_reward(action, data_grabber.bobber_center, fishing_game.bobberInBar, data_grabber.recent_fish_y)
-    print(action, reward)
     score += reward
     state_new = agent.get_state()
 

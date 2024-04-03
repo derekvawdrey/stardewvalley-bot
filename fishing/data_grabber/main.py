@@ -138,7 +138,7 @@ class DataGrabber():
                 self.bobber_top_y, self.bobber_bottom_y = self.find_black_column_positions(20,screen)
 
                 self.bobber_velocity = self.bobber_top_y - self.previous_bobber_top_y
-                self.fish_velocity = self.fish_y - self.previous_fish_y
+                self.fish_velocity = self.recent_fish_y - self.previous_fish_y
 
         except Exception as e:
             print("ERROR:", e)

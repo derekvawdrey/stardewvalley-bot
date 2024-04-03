@@ -19,7 +19,7 @@ class Agent:
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #popleft()
 
-        self.model = Linear_QNet(7, 128, 2)
+        self.model = Linear_QNet(7, 64, 2)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
         pass
@@ -33,8 +33,8 @@ class Agent:
         distance_from_fish = abs(bobber_center - fish_y) 
         time_in_bobber = self.fishing_game.bobberInBarTime
         bobber_velocity = self.data_grabber.bobber_velocity
-        fish_velocity = self.data_grabber = fish_velocity
-        return np.array([is_fish_captured, fish_y, bobber_top, bobber_bottom, distance_from_fish,],dtype=int)
+        fish_velocity = self.data_grabber.fish_velocity
+        return np.array([is_fish_captured, fish_y, bobber_top, bobber_bottom, distance_from_fish, bobber_velocity, fish_velocity],dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done)) # popleft if MAX_MEMORY is reached
