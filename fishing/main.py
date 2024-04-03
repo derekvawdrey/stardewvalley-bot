@@ -7,9 +7,9 @@ from machine_training import Agent
 from data_grabber import DataGrabber
 
 # Constants
-REWARD_HIT = 1
-REWARD_MISS = -1
-REWARD_IN_BOBBER = 2
+REWARD_HIT = 0.1
+REWARD_MISS = -0.1
+REWARD_IN_BOBBER = 0.15
 ACTION_MOUSE_DOWN = 0
 ACTION_MOUSE_UP = 1
 

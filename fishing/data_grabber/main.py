@@ -30,7 +30,11 @@ class DataGrabber():
         self.bobber_bottom_y = 0
         self.bobber_center = 0
         self.current_image = None
-        
+
+        self.previous_fish_y = 0
+        self.previous_bobber_top_y = 0
+        self.fish_velocity = 0
+        self.bobber_velocity = 0
     
         self.template_functions = {
             "fish": {"template_path": "../assets/images/FishingGui/Fish/fish.png", "function": self.fish_found, "template" : None},
@@ -38,6 +42,7 @@ class DataGrabber():
     
     def fish_found(self, match_location):
         # print("Fish found")
+        self.previous_fish_y = self.recent_fish_y
         self.recent_fish_x = match_location[0]
         self.recent_fish_y = match_location[1]
         self.find_fishing_meter(match_location)
@@ -92,7 +97,7 @@ class DataGrabber():
             bottom_y_position = gray_image.shape[0] - 1
 
         self.bobber_center = top_y_position + ((top_y_position - bottom_y_position) // 2)
-
+        
         return top_y_position, bottom_y_position
 
 
@@ -128,11 +133,12 @@ class DataGrabber():
                 condition = ((screen[:,:,1] > 145) & (screen[:,:,0] < 145)) | (screen[:,:,1] >= 140) & ((screen[:,:,0] < 200) | (screen[:,:,0] <= 6))
                 screen[condition] = [0, 0, 0]
 
-                cv2.imshow("image",screen)
-                cv2.waitKey(2)
-
-
+                self.previous_bobber_top_y = self.bobber_top_y
+                self.previous_bobber_bottom_y = self.bobber_bottom_y
                 self.bobber_top_y, self.bobber_bottom_y = self.find_black_column_positions(20,screen)
+
+                self.bobber_velocity = self.bobber_top_y - self.previous_bobber_top_y
+                self.fish_velocity = self.fish_y - self.previous_fish_y
 
         except Exception as e:
             print("ERROR:", e)

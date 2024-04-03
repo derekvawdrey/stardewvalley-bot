@@ -30,7 +30,7 @@ class FishingMinigame:
     def reset(self):
         #Processing
         self.mouse_down = False
-        self.difficulty = random.randint(5, 115) # DONT KNOW WHERE VALUE COMES FROM
+        self.difficulty = random.randint(50, 115) # DONT KNOW WHERE VALUE COMES FROM
         self.distanceFromCatching = 0.3
         self.space_below = 0 # DONT KNOW WHERE VALUE COMES FROM
         self.space_above = 0 # DONT KNOW WHERE VALUE COMES FROM
