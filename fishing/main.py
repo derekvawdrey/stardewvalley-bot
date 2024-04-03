@@ -70,7 +70,7 @@ def train_model():
         else:
             fishing_game.mouse_down = False
 
-        reward += get_reward()
+        reward += get_reward(action)
         score += reward
         state_new = agent.get_state()
 
