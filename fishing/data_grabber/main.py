@@ -28,7 +28,7 @@ class DataGrabber():
         self.recent_fish_x = 0
         self.bobber_top_y = 0
         self.bobber_bottom_y = 0
-        
+        self.bobber_center = 0
         self.current_image = None
         
     
@@ -46,7 +46,7 @@ class DataGrabber():
         print("Exclamation point found - " + str(match_location))
 
     def get_window_position_and_size(self, window_title):
-        return(0,0,1200,1200)
+        return(0,0,600,1000)
 
         windows = gw.getWindowsWithTitle(window_title)
         if windows:
@@ -90,6 +90,8 @@ class DataGrabber():
             longest_span_length = current_span_length
             top_y_position = gray_image.shape[0] - current_span_length
             bottom_y_position = gray_image.shape[0] - 1
+
+        self.bobber_center = top_y_position + ((top_y_position - bottom_y_position) // 2)
 
         return top_y_position, bottom_y_position
 

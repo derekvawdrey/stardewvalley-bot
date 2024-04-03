@@ -1,123 +1,85 @@
-from dataGrabber import DataGrabber
-from fishingMinigameSim import FishingMinigame
-import cv2
-import numpy as np
-import pyautogui
-from PIL import ImageGrab
 import threading
 import argparse
-import threading
-import pickle
 import time
+import pyautogui
+from fishing_minigame import FishingMinigame
 from machine_training import Agent
+from data_grabber import DataGrabber
 
-data_grabber = DataGrabber()
-current_size = pyautogui.size()
-fishing_game = FishingMinigame()
-train = False
+# Constants
+REWARD_HIT = 1
+REWARD_MISS = -1
+REWARD_IN_BOBBER = 2
+ACTION_MOUSE_DOWN = 0
+ACTION_MOUSE_UP = 1
 
-def process_screen():
-    try:
-        while True:
-            # Process the screen for each template
-            data_grabber.process_screen(current_size)
-    except KeyboardInterrupt:
-        print("Stopping data grabber")
+record = 0
+score = 0
 
-def start_simulation():
-    fishing_game.startSimulationProgram()
-    while fishing_game.running:
-        fishing_game.run()
-        # train_model step
+def get_reward(action, bobber_center, bobber_in_bar, fish_y):
+    print("Bobber Center", bobber_center, "Bobber in bar", bobber_in_bar, "fish y",fish_y)
 
+    if bobber_in_bar:
+        return REWARD_IN_BOBBER
+    elif bobber_center < fish_y and action[ACTION_MOUSE_DOWN] == 1:
+        return REWARD_MISS
+    elif bobber_center < fish_y and action[ACTION_MOUSE_UP] == 1:
+        return REWARD_HIT
+    elif bobber_center > fish_y and action[ACTION_MOUSE_DOWN] == 1:
+        return REWARD_HIT
+    elif bobber_center > fish_y and action[ACTION_MOUSE_UP] == 1:
+        return REWARD_MISS
+    return 0
 
-def get_reward(action):
+def train_model(fishing_game, agent, data_grabber):
+    global score
+    global record
+
+    fishing_game.wait = False
     reward = 0
-
-    fish_y = data_grabber.recent_fish_y
-    bobber_top = data_grabber.bobber_top_y
-    bobber_bottom = data_grabber.bobber_bottom_y
-    bobber_center = (bobber_bottom + bobber_top) // 2 
-
-    if bobber_bottom - bobber_center < fish_y and action[0] == 1:
-        reward = -1
-    elif bobber_bottom - bobber_center < fish_y and action[1] == 1:
-        reward = 1
-    elif bobber_bottom - bobber_center > fish_y and action[0] == 1:
-        reward = 1
-    elif bobber_bottom - bobber_center > fish_y and action[1] == 1:
-        reward = -1
-    return reward
-
-# Train the neural network
-def train_model():
-    plot_scores = []
-    plot_mean_scores = []
-    total_score = 0
-    record = 0
-    score = 0
-    fishing_game.training = True
+    state_old = agent.get_state()
+    action = agent.get_action(state_old)
     
-    agent = Agent(fishing_game, data_grabber)
-    while True:
-        fishing_game.wait = False
-        reward = 0
-        state_old = agent.get_state()
-        action = agent.get_action(state_old)
+    if action[0] == 1:
+        fishing_game.mouse_down = True
+    else:
+        fishing_game.mouse_down = False
 
-        if action[0] == 1:
-            fishing_game.mouse_down = True
-        else:
-            fishing_game.mouse_down = False
+    reward += get_reward(action, data_grabber.bobber_center, fishing_game.bobberInBar, data_grabber.recent_fish_y)
+    print(action, reward)
+    score += reward
+    state_new = agent.get_state()
 
-        reward += get_reward(action)
-        score += reward
-        state_new = agent.get_state()
+    agent.train_short_memory(state_old, action, reward, state_new, fishing_game.is_ended())
+    agent.remember(state_old, action, reward, state_new, fishing_game.is_ended())
 
-        agent.train_short_memory(state_old, action, reward, state_new, fishing_game.is_ended())
-        agent.remember(state_old, action, reward, state_new, fishing_game.is_ended())
+    if fishing_game.is_ended():
+        fishing_game.wait = True
+        fishing_game.reset()
+        agent.n_games += 1
+        agent.train_long_memory()
 
-        if fishing_game.is_ended():
-            fishing_game.wait = True
-            # train long memory
-            fishing_game.reset()
-            agent.n_games += 1
-            agent.train_long_memory()
+        if score > record:
+            record = score
+            agent.model.save()
 
-            if score > record:
-                record = score
-                agent.model.save()
-
-            print("Game", agent.n_games, "Score", score, 'Record', record)
-            plot_scores.append(score)
-            total_score += score
-            mean_score = total_score/agent.n_games
-            plot_mean_scores.append(mean_score)
-            score = 0
-            
-    print("Training done")
+        print("Game", agent.n_games, "Score", score, 'Record', record)
+        score = 0
 
 def main(args):
-    if args.train:
-        train = args.train
-    # Create threads for each function
-    screen_thread = threading.Thread(target=process_screen)
-    simulation_thread = threading.Thread(target=start_simulation)
-
-    # Start both threads
-    screen_thread.start()
-    simulation_thread.start()
+    data_grabber = DataGrabber()
+    current_size = pyautogui.size()
+    fishing_game = FishingMinigame()
+    agent = Agent(fishing_game, data_grabber)
 
     if args.train:
-        train_thread = threading.Thread(target=train_model)
-        train_thread.start()
+        fishing_game.training = True
 
-    # Wait for all threads to finish
-    screen_thread.join()
-    simulation_thread.join()
-
-    if args.train:
-        train_thread.join()
+    fishing_game.startSimulationProgram()
+    while True:
+        data_grabber.process_screen(current_size)
+        fishing_game.run()
+        train_model(fishing_game, agent, data_grabber)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tasks concurrently or train a model.")
